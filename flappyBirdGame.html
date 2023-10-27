@@ -1,0 +1,359 @@
+<html>
+<head>
+	<title>Flappy Bird by Wes</title>
+
+
+     
+     <meta name="viewport" content="minimal-ui, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+</head>
+<body >
+
+<style type="text/css">
+
+#zoomBlocker {
+width:100vw;
+height:100vh;
+overflow:hidden;
+touch-action:manipulation;
+position:absolute;
+z-index:999;
+}
+body {
+	margin: 0px;
+	overflow: hidden;
+	background-color: black;
+	touch-action: manipulation;
+}
+
+#board {
+    touch-action: manipulation;
+	position: relative;
+	width: 100%;
+	height: 90vh;
+	margin-top: 2.5%;
+	background-color: skyblue;
+	overflow: hidden;
+}
+
+#playerRep{
+    touch-action: manipulation;
+	position: absolute;
+	width: 50px;
+	height: 50px;
+	top: -5px;
+	left: -5px;
+	border-radius: 50%;
+	background-color: blue;
+}
+
+#player {
+    touch-action: manipulation;
+	position: absolute;
+	width: 50px;
+	height: 50px;
+	top: 10px;
+	left: 10px;
+	z-index: 10;
+}
+
+#scoreboard {
+    touch-action: manipulation;
+	position: absolute;
+	width: 200px;
+	height: 50px;
+	top:10px;
+	left: 10px;
+	background-color: yellow;
+	border: solid black 2px;
+	border-radius: 20px;
+	z-index: 10;
+	text-align: center;
+	font-size: 25px;
+	font-family: calibri;
+	line-height: 45px;
+}
+
+#gameOver {
+	position: absolute;
+	width: 70%;
+	height: 50%;
+	top:25%;
+	left:15%;
+	background-color: red;
+	border: solid black 2px;
+	border-radius: 20px;
+	text-align: center;
+	font-size: 25px;
+	font-family: calibri;
+	line-height: 45px;
+    display:none;
+	z-index:9997;
+	touch-action:manipulation;
+}
+
+#restart {
+	position: absolute;
+	width: 70%;
+	height: 20%;
+	top:50%;
+	left: 15%;
+	background-color: blue;
+	border: solid black 2px;
+	border-radius: 30px;
+	z-index: 9999;
+	line-height: 50px;
+	text-align: center;
+	font-size: 30px;
+	font-family: calibri;
+	color: yellow;
+	cursor: pointer;
+	touch-action:manipulation;
+}
+
+#gameOverText{
+	position: absolute;
+	display: block;
+	width: 100%;
+	top: 30px;
+	font-family: calibri;
+	font-size: 50px;
+	z-index:9998
+	touch-action:manipulation;
+}
+
+</style>
+<div id='zoomBlocker'></div>
+<div id="board">
+
+		<div id="player">
+				<div id="playerRep"></div>
+		</div>
+
+	<div id="scoreboard"></div>
+	<div id="gameOver">
+		<p id="gameOverText">Game Over</p>
+		<div id="restart">Restart</div>
+	</div>
+</div>
+
+
+
+
+
+
+<script type="text/javascript">
+
+document.addEventListener('gesturestart', function(e){
+e.preventDefault();
+});
+
+
+
+gameOver=false
+player = document.getElementById("player");
+playerX = 50;
+playerY = 20;
+playerWidth = 40;
+playerHeight = 40;
+player.style.width = playerWidth + "px"
+player.style.height = playerHeight + "px";
+player.style.top = playerY + "px";
+player.style.left =  playerX + "px";
+
+
+pipeWidth = 100;
+pipeHeight = 0;
+pipeGap = 300;
+pipeSpawn = window.innerWidth;
+pipeArray = [];
+pipeXArray = [];
+pipeYArray = [];
+
+genTimer = 0;
+genLimit = 100
+
+spacebar = false;
+jumping = false;
+
+gravity = 0;
+gravityMax = 7;
+
+click = false;
+
+score = 0;
+
+restart = document.getElementById("restart");
+
+function generate(){
+
+
+
+	newPipe = document.createElement('div');
+	newPipe.style.position = "absolute";
+	newPipe.style.backgroundColor = "green";
+	newPipe.style.width = pipeWidth + "px";
+	pipeHeight = Math.floor(Math.random()*window.innerHeight/2.25);
+	newPipe.style.height = pipeHeight + "px";
+	newPipe.style.top = "0px";
+	newPipe.style.left = pipeSpawn + "px";
+	newPipe.style.border = "solid black 1px";
+	newPipe.style.borderRadius = "0px 0px 10px 10px";
+	pipeArray.push(newPipe);
+	pipeXArray.push(pipeSpawn);
+	pipeYArray.push(pipeHeight);
+	document.getElementById("board").appendChild(newPipe);
+
+	secondPipe = document.createElement('div');
+	secondPipe.style.position = "absolute";
+	secondPipe.style.backgroundColor = "green";
+	secondPipe.style.width = pipeWidth + "px";
+	secondPipe.style.height = window.innerHeight + "px";
+	secondPipe.style.top = pipeHeight + pipeGap + "px";
+	secondPipe.style.left = pipeSpawn + "px";
+	secondPipe.style.border = "solid black 1px";
+	secondPipe.style.borderRadius = "10px 10px 0px 0px";
+	pipeArray.push(secondPipe);
+	pipeXArray.push(pipeSpawn);
+	pipeYArray.push(pipeHeight + pipeGap);
+	document.getElementById("board").appendChild(secondPipe);
+
+
+
+}
+
+onkeydown = function(){
+	key = event.keyCode;
+	if (key == 32) {
+		spacebar = true;
+		
+	}
+}
+
+onkeyup = function(){
+	key = event.keyCode;
+	if (key == 32) {
+		spacebar = false;
+		jumping = false;
+		
+	}
+}
+
+ontouchstart = function(){
+	click = true;
+}
+
+function movePipes(){
+
+	for (i=0; i < pipeArray.length; i++){
+
+		if (pipeXArray[i] + pipeWidth < 0 ) {
+			pipeXArray.splice(i,1);
+			pipeArray.splice(i,1);
+			pipeYArray.splice(i,1);
+		}
+
+		pipeXArray[i]-=3;
+		pipeArray[i].style.left = pipeXArray[i] + "px";
+	}
+
+	genTimer++;
+
+	if (genTimer >= genLimit) {
+		genTimer = 0;
+		generate();
+	}
+}
+
+
+function jumpGravity(){
+
+	playerY += gravity;
+
+
+
+	if (gravity < gravityMax) {
+		gravity+=0.5;
+	}
+
+	if (playerY + playerHeight >= window.innerHeight/1.15) {
+		gravity=0;
+	}
+
+	if (spacebar == true && jumping == false && playerY > 10) {
+		jumping = true;
+		gravity = -10;
+	}
+
+	if (click == true && playerY >10) {
+		gravity = -10;
+	}
+}
+
+
+function collisionCheck(){
+
+	for (i=0; i < pipeArray.length; i+=2) {
+
+		if (pipeXArray[i] <= playerX + playerWidth &&  pipeXArray[i] + pipeWidth > playerX) {
+			if (playerY < pipeYArray[i] || playerY + playerHeight > pipeYArray[i+1]) {
+				gameOver=true;
+				document.getElementById("gameOver").style.display = "block";
+				document.getElementById("gameOver").style.touchAction = "manipulation";
+			}
+		}
+	}
+}
+
+
+function reset(){
+
+	document.getElementById("gameOver").style.display = "none";
+	score = 0;
+	genTimer = 0;
+    
+
+	for (i=0; i< pipeArray.length; i++){
+		pipeArray[i].style.display = "none";
+	}
+
+
+	pipeXArray.splice(0,pipeXArray.length);
+	pipeYArray.splice(0,pipeYArray.length);
+	pipeArray.splice(0,pipeArray.length);
+
+	generate();
+	gameOver = false;
+	requestAnimationFrame(mainLoop);
+}
+
+restart.onclick = function(){ reset()};
+restart.touchstart = function(){ reset()};
+
+function mainLoop(){
+
+	movePipes();
+	jumpGravity();
+	collisionCheck();
+
+	score +=1;
+
+	player.style.top = playerY + "px";
+	click = false;
+
+	document.getElementById("scoreboard").innerHTML = "Distance: " + score;
+
+
+ if (gameOver == false){requestAnimationFrame(mainLoop);};
+}
+
+generate();
+
+mainLoop();
+
+
+
+</script>
+
+</body>
+</html>
